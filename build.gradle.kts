@@ -1,4 +1,3 @@
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktor)
@@ -20,12 +19,11 @@ repositories {
 }
 
 dependencies {
+    // ============= Ktor Core =============
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.websockets)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.content.negotiation)
-    implementation(libs.postgresql)
-    implementation(libs.h2)
     implementation(libs.ktor.server.call.logging)
     implementation(libs.ktor.server.call.id)
     implementation(libs.ktor.server.http.redirect)
@@ -35,18 +33,32 @@ dependencies {
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.netty)
-
-    implementation(libs.dotenv)
-    implementation("org.jetbrains.exposed:exposed-core:0.60.0")
-    runtimeOnly("org.jetbrains.exposed:exposed-jdbc:0.60.0")
-    implementation("org.jetbrains.exposed:exposed-dao:0.60.0")
-    runtimeOnly("org.jetbrains.exposed:exposed-java-time:0.60.0")
-
+    implementation(libs.ktor.server.config.yaml)
     implementation(libs.ktor.server.html.builder)
+
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+
+    // ============= Database =============
+    implementation(libs.postgresql)
+    implementation(libs.h2)
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.dao)
+    runtimeOnly(libs.exposed.jdbc)
+
+    // ============= HTML =============
     implementation(libs.kotlinx.html)
 
+    // ============= Logging =============
     implementation(libs.logback.classic)
-    implementation(libs.ktor.server.config.yaml)
+
+    // ============= Env & Config =============
+    implementation(libs.dotenv)
+
+    // ============= Testing =============
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test.junit)
+
+    implementation("org.json:json:20250107")
 }
