@@ -63,17 +63,7 @@ fun Application.configureRouting() {
 
 fun Application.configureDatabaseRouting() {
     configurePersonRouting()
-    configureAircraftRouting()
-    configureAircraftTypeRouting()
-    configureAirlineRouting()
     configureAirportRouting()
-    configureCityRouting()
-    configureCountryRouting()
-    configureDayOfOperationRouting()
-    configureDayOfTheWeekRouting()
-    configureFlightProblemRouting()
     configureFlightRouting()
-    configureRouteRouting()
-    configureSeasonOfTheYearRouting()
-    configureSegmentRouting()
+    configureDocumentsRouting()
 }

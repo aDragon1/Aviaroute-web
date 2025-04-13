@@ -1,32 +1,50 @@
 package self.adragon.database.repository
 
-import org.jetbrains.exposed.sql.StdOutSqlLogger
-import org.jetbrains.exposed.sql.addLogger
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.exceptions.ExposedSQLException
+import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import self.adragon.database.table.AircraftTypes
+import self.adragon.database.table.AircraftTypesTable
+import self.adragon.database.table.AircraftTypesTable.businessTotal
+import self.adragon.database.table.AircraftTypesTable.economyTotal
+import self.adragon.database.table.AircraftTypesTable.icaoCode
+import self.adragon.database.table.AircraftTypesTable.model
+import self.adragon.database.table.AircraftTypesTable.priorityTotal
+import self.adragon.model.db.AircraftType
 
 object AircraftTypeRepository {
-    fun insert(pName: String, pDescription: String, pEconomyTotal: Int, pPriorityTotal: Int, pBusinessTotal: Int) =
-        transaction {
-            addLogger(StdOutSqlLogger)
-            AircraftTypes.insert {
-                it[name] = pName
-                it[description] = pDescription
-                it[economyTotal] = pEconomyTotal
-                it[priorityTotal] = pPriorityTotal
-                it[businessTotal] = pBusinessTotal
-            }
-        }
+    fun insertMany(aircraftTypes: List<AircraftType>) = transaction {
+        try {
+            AircraftTypesTable.batchInsert(aircraftTypes) { aircraftType ->
+                this[icaoCode] = aircraftType.icaoCode
+                this[model] = aircraftType.model
+                this[economyTotal] = aircraftType.economy
+                this[priorityTotal] = aircraftType.priority
+                this[businessTotal] = aircraftType.business
 
-    fun selectAll() = transaction {
-        addLogger(StdOutSqlLogger)
-        AircraftTypes.selectAll().map { it }
+            }
+        } catch (e: ExposedSQLException) {
+            println("~".repeat(20))
+            println("AircraftTypeRepository ERROR: ${e.message}\n")
+            println("~".repeat(20))
+        }
     }
 
-    fun selectById(id: Int) = transaction {
-        addLogger(StdOutSqlLogger)
-        AircraftTypes.selectAll().where { AircraftTypes.id eq id }.map { it }
-    }.singleOrNull()
+    fun selectAll() = transaction {
+        AircraftTypesTable.selectAll().map {
+            val id = it[AircraftTypesTable.id]
+            val aircraftType = AircraftType.fromRow(it)
+            id to aircraftType
+        }
+    }
+
+    fun selectAllIdsAndModels() = transaction {
+        AircraftTypesTable.select(AircraftTypesTable.id, model).map {
+            val id = it[AircraftTypesTable.id]
+            val model = it[model]
+
+            Pair(id, model)
+        }
+    }
+
 }

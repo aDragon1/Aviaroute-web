@@ -1,28 +1,39 @@
 package self.adragon.database.repository
 
-import org.jetbrains.exposed.sql.StdOutSqlLogger
-import org.jetbrains.exposed.sql.addLogger
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.exceptions.ExposedSQLException
+import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.transactions.transaction
-import self.adragon.database.table.Airlines
+import self.adragon.database.table.AirlinesTable
+import self.adragon.database.table.AirlinesTable.iataCode
+import self.adragon.database.table.AirlinesTable.icaoCode
+import self.adragon.database.table.AirlinesTable.name
+import self.adragon.model.db.Airline
 
 object AirlineRepository {
-    fun insert(pName: String, pDescription: String) = transaction {
-        addLogger(StdOutSqlLogger)
-        Airlines.insert {
-            it[name] = pName
-            it[description] = pDescription
+    fun insertMany(airlines: List<Airline>) = transaction {
+        try {
+            AirlinesTable.batchInsert(airlines) { airline ->
+                this[icaoCode] = airline.icaoCode
+                this[name] = airline.name
+                this[iataCode] = airline.iataCode
+            }
+        } catch (e: ExposedSQLException) {
+            println("~".repeat(20))
+            println("AirlineRepository ERROR: ${e.message}\n")
+            println("~".repeat(20))
         }
     }
 
-    fun selectAll() = transaction {
-        addLogger(StdOutSqlLogger)
-        Airlines.selectAll().map { it }
+    fun getAllIdsAndNames() = transaction {
+        AirlinesTable.select(AirlinesTable.id, name).map {
+            val id = it[AirlinesTable.id]
+            val name = it[name]
+
+            Pair(id, name)
+        }
     }
 
-    fun selectById(id: Int) = transaction {
-        addLogger(StdOutSqlLogger)
-        Airlines.selectAll().where { Airlines.id eq id }.map { it }
-    }.singleOrNull()
+    fun getAllIds() = transaction {
+        AirlinesTable.select(AirlinesTable.id).map { it[AirlinesTable.id] }
+    }
 }

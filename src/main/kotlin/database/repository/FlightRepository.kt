@@ -1,41 +1,54 @@
 package self.adragon.database.repository
 
-import org.jetbrains.exposed.sql.StdOutSqlLogger
-import org.jetbrains.exposed.sql.addLogger
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.exceptions.ExposedSQLException
+import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.transactions.transaction
-import self.adragon.database.table.Flights
+import self.adragon.database.table.FlightsTable
+import self.adragon.model.ScheduledFlight
+import self.adragon.model.db.Flight
 
 object FlightRepository {
-    fun insert(
-        pFlightNumber: Int,
-        pAircraftId: Int,
-        pEconomyLeft: Int,
-        pPriorityLeft: Int,
-        pBusinessLeft: Int,
-        pActualDepartureTime: Int,
-        pFlightTime: Int
-    ) = transaction {
-        addLogger(StdOutSqlLogger)
-        Flights.insert {
-            it[flightNumber] = pFlightNumber
-            it[aircraftId] = pAircraftId
-            it[economyLeft] = pEconomyLeft
-            it[priorityLeft] = pPriorityLeft
-            it[businessLeft] = pBusinessLeft
-            it[actualDepartureTime] = pActualDepartureTime
-            it[flightTime] = pFlightTime
+    fun insertMany(flights: List<Flight>) = transaction {
+        try {
+            FlightsTable.batchInsert(flights) { flights ->
+                this[FlightsTable.flightNumber] = flights.flightNumber
+                this[FlightsTable.aircraftID] = flights.aircraftId
+                this[FlightsTable.economyLeft] = flights.economyLeft
+                this[FlightsTable.priorityLeft] = flights.priorityLeft
+                this[FlightsTable.businessLeft] = flights.businessLeft
+                this[FlightsTable.actualDepartureTime] = flights.actualDepartureTime
+                this[FlightsTable.flightTime] = flights.flightTime
+            }
+        } catch (e: ExposedSQLException) {
+            println("~".repeat(20))
+            println("FlightRepository ERROR: ${e.message}\n")
+            println("~".repeat(20))
         }
     }
 
-    fun selectAll() = transaction {
-        addLogger(StdOutSqlLogger)
-        Flights.selectAll().map { it }
+    fun getFlightByDepartureAndEpoch(
+        departureID: Int, dayStartEpoch: Int, dayEndEpoch: Int? = null
+    ): List<ScheduledFlight> {
+        val q1 = "SELECT * FROM get_flight($departureID, $dayStartEpoch)"
+        val q2 = "SELECT * FROM get_flight($departureID, $dayStartEpoch) WHERE dep_time <= $dayEndEpoch"
+
+        return getFlights(if (dayEndEpoch == null) q1 else q2)
     }
 
-    fun selectById(id: Int) = transaction {
-        addLogger(StdOutSqlLogger)
-        Flights.selectAll().where { Flights.id eq id }.map { it }
-    }.singleOrNull()
+    private fun getFlights(q: String) =
+        transaction {
+            exec(q) { rs ->
+                val flights = mutableListOf<ScheduledFlight>()
+                while (rs.next()) {
+                    val flightID = rs.getInt("flight_id")
+                    val arrID = rs.getInt("arr_id")
+                    val depTime = rs.getInt("dep_time")
+                    val arrTime = rs.getInt("arr_time")
+
+                    val f = ScheduledFlight(flightID, depTime, arrTime, arrID)
+                    flights.add(f)
+                }
+                flights
+            } ?: emptyList()
+        }
 }

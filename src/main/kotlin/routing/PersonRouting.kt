@@ -13,11 +13,10 @@ import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.ResultRow
 import self.adragon.database.repository.PersonRepository
-import self.adragon.model.Person
+import self.adragon.model.db.Person
 
 private const val MAIN_ROUTE = "/persons"
 fun Application.configurePersonRouting() {
-
     routing {
         post("$MAIN_ROUTE/insert") {
             val params = call.receiveParameters()
@@ -34,7 +33,7 @@ fun Application.configurePersonRouting() {
                 PersonRepository.insert(name, age)
                 val persons = PersonRepository.selectAll()
 
-                val personsList = persons.map { Person(it[PersonTable.id], it[PersonTable.name], it[PersonTable.age]) }
+                val personsList = persons.map { Person.fromRow(it) }
 
                 val personsJson = Json.encodeToString(personsList)
                 call.respond(
@@ -83,7 +82,7 @@ fun Application.configurePersonRouting() {
                 println(e.causedByQueries())
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("status" to "error", "message" to "Ошибка при добавлении")
+                    mapOf("status" to "error", "message" to "Ошибка при удалении")
                 )
             } catch (e: Exception) {
                 println(e.message)
@@ -151,7 +150,10 @@ async function validateForm(event) {
     });
 
     const result = await response.json();
-
+    
+    nameInput.value = "";
+    ageInput.value = "";
+    
     if (result.status === "OK") updatePersonsTable(JSON.parse(result.persons));
 }
 """.trimIndent()

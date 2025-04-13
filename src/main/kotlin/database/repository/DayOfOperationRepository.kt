@@ -1,28 +1,21 @@
 package self.adragon.database.repository
 
-import org.jetbrains.exposed.sql.StdOutSqlLogger
-import org.jetbrains.exposed.sql.addLogger
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.exceptions.ExposedSQLException
+import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.transactions.transaction
-import self.adragon.database.table.DaysOfOperation
+import self.adragon.database.table.DaysOfOperationTable
 
 object DayOfOperationRepository {
-    fun insert(pScheduleId: Int, pDayId: Int) = transaction {
-        addLogger(StdOutSqlLogger)
-        DaysOfOperation.insert {
-            it[scheduleId] = pScheduleId
-            it[dayId] = pDayId
+    fun insertMany(ids: List<Pair<Int, Int>>) = transaction {
+        try {
+            DaysOfOperationTable.batchInsert(ids) { (schedule, day) ->
+                this[DaysOfOperationTable.scheduleId] = schedule
+                this[DaysOfOperationTable.dayID] = day
+            }
+        } catch (e: ExposedSQLException) {
+            println("~".repeat(20))
+            println("FlightScheduleRepository ERROR: ${e.message}\n")
+            println("~".repeat(20))
         }
     }
-
-    fun selectAll() = transaction {
-        addLogger(StdOutSqlLogger)
-        DaysOfOperation.selectAll().map { it }
-    }
-
-    fun selectById(id: Int) = transaction {
-        addLogger(StdOutSqlLogger)
-        DaysOfOperation.selectAll().where { DaysOfOperation.id eq id }.map { it }
-    }.singleOrNull()
 }

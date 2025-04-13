@@ -1,25 +1,41 @@
 package self.adragon.database.repository
 
+import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.StdOutSqlLogger
 import org.jetbrains.exposed.sql.addLogger
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.transactions.transaction
-import self.adragon.database.table.Countries
+import self.adragon.database.table.CountriesTable
+import self.adragon.database.table.CountriesTable.code
+import self.adragon.database.table.CountriesTable.name
+import self.adragon.model.db.Country
 
 object CountryRepository {
-    fun insert(pName: String) = transaction {
+    fun insertMany(countries: List<Country>) = transaction {
         addLogger(StdOutSqlLogger)
-        Countries.insert { it[name] = pName }
+        try {
+            CountriesTable.batchInsert(countries) { country ->
+                this[code] = country.iso2
+                this[name] = country.name
+            }
+        } catch (e: ExposedSQLException) {
+            println("~".repeat(20))
+            println("CountryRepository ERROR: ${e.message}\n")
+            println("~".repeat(20))
+        }
     }
 
-    fun selectAll() = transaction {
-        addLogger(StdOutSqlLogger)
-        Countries.selectAll().map { it }
+    fun getAllIdAndCodes() = transaction {
+        CountriesTable.select(CountriesTable.id, code).map {
+            val id = it[CountriesTable.id]
+            val code = it[code]
+
+            Pair(id, code)
+        }
     }
 
-    fun selectById(id: Int) = transaction {
-        addLogger(StdOutSqlLogger)
-        Countries.selectAll().where { Countries.id eq id }.map { it }
-    }.singleOrNull()
+    fun getIdByCode(code: String) = transaction {
+        CountriesTable.select(CountriesTable.id).where { CountriesTable.code eq code }.firstOrNull()
+            ?.get(CountriesTable.id)
+    }
 }

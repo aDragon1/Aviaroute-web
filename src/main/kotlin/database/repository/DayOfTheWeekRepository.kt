@@ -1,25 +1,27 @@
 package self.adragon.database.repository
 
-import org.jetbrains.exposed.sql.StdOutSqlLogger
-import org.jetbrains.exposed.sql.addLogger
+import org.jetbrains.exposed.exceptions.ExposedSQLException
+import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import self.adragon.database.table.DaysOfTheWeek
+import self.adragon.database.table.DaysOfOperationTable
+import self.adragon.database.table.DaysOfTheWeekTable
 
 object DayOfTheWeekRepository {
     fun insert(pName: String) = transaction {
-        addLogger(StdOutSqlLogger)
-        DaysOfTheWeek.insert { it[name] = pName }
+        try {
+            DaysOfTheWeekTable.insert { it[name] = pName }
+        } catch (e: ExposedSQLException) {
+            println("DayOfTheWeekRepository ERROR: ${e.message}\n")
+        }
     }
 
-    fun selectAll() = transaction {
-        addLogger(StdOutSqlLogger)
-        DaysOfTheWeek.selectAll().map { it }
+    fun insertMany(strings: List<String>) = transaction {
+        DaysOfTheWeekTable.batchInsert(strings) {
+            this[DaysOfTheWeekTable.name] = it
+        }
     }
 
-    fun selectById(id: Int) = transaction {
-        addLogger(StdOutSqlLogger)
-        DaysOfTheWeek.selectAll().where { DaysOfTheWeek.id eq id }.map { it }
-    }.singleOrNull()
+    fun getAllIDs() = transaction { DaysOfTheWeekTable.select(DaysOfTheWeekTable.id).map { it[DaysOfTheWeekTable.id] } }
 }
