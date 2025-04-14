@@ -12,45 +12,37 @@ import self.adragon.database.repository.DocumentRepository
 import java.time.format.DateTimeParseException
 
 private const val MAIN_ROUTE = "/documents"
-private const val SCHEDULE_ROUTE = "/schedule"
-
+private const val SCHEDULE_ROUTE = "schedule"
+private const val AIRCRAFT_ROUTE = "aircraft"
 fun Application.configureDocumentsRouting() {
 
     routing {
-        post("$MAIN_ROUTE/$SCHEDULE_ROUTE/monthly_by_tail_number") {
-            call.respond(HttpStatusCode.OK, "TODO")
+        get("$MAIN_ROUTE/$AIRCRAFT_ROUTE/small") {
             try {
-                val params = call.receiveParameters()
+                val bytes = DocumentRepository.createSmallAircraftReport()
 
-                val date = params["date"]
-                val tailNumber = params["tail_number"]
-
-                if (date == null) return@post call.respond(HttpStatusCode.BadRequest, "Дата не указана")
-                if (tailNumber == null) return@post call.respond(HttpStatusCode.BadRequest, "Номер рейса не указан")
-
-                val dateEpoch = DateEpochUtils.convertDateToEpoch(date, DATE_FORMAT)
-                println(dateEpoch)
-
+                call.respond(HttpStatusCode.OK, bytes)
             } catch (e: Exception) {
-                val result = when (e) {
-                    is DateTimeParseException -> mapOf("result" to "Wrong date format. Use $DATE_FORMAT instead")
-                    else -> mapOf("result" to "${e.message}")
-                }
-                println(result)
-                call.respond(HttpStatusCode.BadRequest, result)
+                println(e.stackTrace)
+                call.respond(HttpStatusCode.BadRequest, "${e.message}")
             }
         }
+
 
         // Расписание на день по всем авиарейсам Flights
         post("$MAIN_ROUTE/$SCHEDULE_ROUTE/daily") {
             try {
                 val params = call.receiveParameters()
-                val date = params["date"]
+                val dateStart = params["date_start"]
+                val dateEnd = params["date_end"]
 
-                if (date == null)
-                    return@post call.respond(HttpStatusCode.BadRequest, "Дата не указана")
+                if (dateStart == null)
+                    return@post call.respond(HttpStatusCode.BadRequest, "Дата начала периода не указана")
+                if (dateEnd == null)
+                    return@post call.respond(HttpStatusCode.BadRequest, "Дата конца периода не указана")
 
-                val bytes = DocumentRepository.createDailyReport(date)
+
+                val bytes = DocumentRepository.createDailyReport(dateStart, dateEnd)
                 call.respondBytes(bytes)
 
             } catch (e: Exception) {

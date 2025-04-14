@@ -35,4 +35,6 @@ object AircraftRepository {
                 id to aircraft
             }
     }
+
+    fun getCount() = transaction { AircraftTable.selectAll().count() }
 }

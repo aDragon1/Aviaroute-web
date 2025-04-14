@@ -2,6 +2,7 @@ package self.adragon.database.repository
 
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.batchInsert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import self.adragon.database.table.AirlinesTable
 import self.adragon.database.table.AirlinesTable.iataCode
@@ -36,4 +37,6 @@ object AirlineRepository {
     fun getAllIds() = transaction {
         AirlinesTable.select(AirlinesTable.id).map { it[AirlinesTable.id] }
     }
+
+    fun getCount() = transaction { AirlinesTable.selectAll().count() }
 }

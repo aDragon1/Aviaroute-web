@@ -60,24 +60,38 @@ object AirportRepository {
     }
 
     fun getAllLocations(): List<AirportLocation> {
+        // Составление SQL-запроса
         val query =
             "SELECT a.id, ai.* FROM airports a, LATERAL get_airport_info(a.id) ai ORDER BY country_name, city_name, airport_name;"
 
+        // Возврат из функции
         return transaction {
-            exec(query) { rs ->
-                val locations = mutableListOf<AirportLocation>()
-                while (rs.next()) {
-                    val airportId = rs.getInt("airport_id")
-                    val country = rs.getString("country_name")
-                    val city = rs.getString("city_name")
-                    val airport = rs.getString("airport_name")
-                    val code = rs.getString("airport_code")
+        // Выполнение составленного запроса
+            exec(query) { result -> // Переменная result содержит в себе список строк, которые вернул SQL-запрос
 
+                // Создание списка для хранения данных
+                val locations = mutableListOf<AirportLocation>()
+
+                // Пока есть следующий элемент
+                while (result.next()) {
+
+                    // Получаем соответствующий тип данных по соответствующему полю
+                    val airportId = result.getInt("airport_id")
+                    val country = result.getString("country_name")
+                    val city = result.getString("city_name")
+                    val airport = result.getString("airport_name")
+                    val code = result.getString("airport_code")
+
+                    // Создание экземпляра класса AirportLocation
                     val loc = AirportLocation(airportId, country, city, airport, code)
+
+                    // Добавление объекта в список
                     locations.add(loc)
                 }
+
+                // Возврат списка с данными
                 locations
             }
-        } ?: emptyList()
+        } ?: emptyList() // или пустого, при возникновении ошибки
     }
 }

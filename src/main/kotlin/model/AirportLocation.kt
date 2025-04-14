@@ -10,3 +10,4 @@ data class AirportLocation(
     val airportName: String,
     val airportCode: String
 )
+
